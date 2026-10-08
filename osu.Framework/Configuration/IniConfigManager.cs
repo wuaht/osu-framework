@@ -26,10 +26,24 @@ namespace osu.Framework.Configuration
 
         private readonly Storage storage;
 
+        private readonly string filenamePrefix;
+
         public IniConfigManager(Storage storage, IDictionary<TLookup, object> defaultOverrides = null)
+            : this(storage, defaultOverrides, null)
+        {
+        }
+
+        /// <param name="storage">The storage to store the config in.</param>
+        /// <param name="defaultOverrides">Overrides for the default values of settings.</param>
+        /// <param name="filenamePrefix">
+        /// A prefix for the <see cref="Filename"/>, so that multiple applications sharing a storage can keep separate settings.
+        /// If the prefixed file doesn't exist yet, the settings are loaded from the unprefixed file as a starting point.
+        /// </param>
+        protected IniConfigManager(Storage storage, IDictionary<TLookup, object> defaultOverrides, string filenamePrefix)
             : base(defaultOverrides)
         {
             this.storage = storage;
+            this.filenamePrefix = filenamePrefix;
 
             InitialiseDefaults();
             Load();
@@ -39,7 +53,12 @@ namespace osu.Framework.Configuration
         {
             if (string.IsNullOrEmpty(Filename)) return;
 
-            using (var stream = storage.GetStream(Filename))
+            string filename = filenamePrefix + Filename;
+
+            if (!string.IsNullOrEmpty(filenamePrefix) && !storage.Exists(filename))
+                filename = Filename;
+
+            using (var stream = storage.GetStream(filename))
             {
                 if (stream == null)
                     return;
@@ -87,7 +106,7 @@ namespace osu.Framework.Configuration
 
             try
             {
-                using (var stream = storage.CreateFileSafely(Filename))
+                using (var stream = storage.CreateFileSafely(filenamePrefix + Filename))
                 using (var w = new StreamWriter(stream))
                 {
                     foreach (var p in ConfigStore)

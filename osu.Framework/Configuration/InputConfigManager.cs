@@ -26,6 +26,8 @@ namespace osu.Framework.Configuration
 
         private readonly Storage storage;
 
+        private readonly string filenamePrefix;
+
         [JsonConverter(typeof(TypedRepopulatingConverter<InputHandler>))]
         public IReadOnlyList<InputHandler> InputHandlers { get; set; }
 
@@ -34,9 +36,11 @@ namespace osu.Framework.Configuration
         /// </summary>
         /// <param name="storage">The storage to store the configuration file to.</param>
         /// <param name="inputHandlers">The collection of available input handlers. Settings will be loaded into existing instances.</param>
-        public InputConfigManager(Storage storage, IReadOnlyList<InputHandler> inputHandlers)
+        /// <param name="filenamePrefix">A prefix for the configuration file's name. See <see cref="HostOptions.ConfigFilenamePrefix"/>.</param>
+        public InputConfigManager(Storage storage, IReadOnlyList<InputHandler> inputHandlers, string? filenamePrefix = null)
         {
             this.storage = storage;
+            this.filenamePrefix = filenamePrefix ?? string.Empty;
             InputHandlers = inputHandlers;
 
             Load();
@@ -48,7 +52,7 @@ namespace osu.Framework.Configuration
         {
             try
             {
-                using (var stream = storage.CreateFileSafely(FILENAME))
+                using (var stream = storage.CreateFileSafely(filenamePrefix + FILENAME))
                 using (var sw = new StreamWriter(stream))
                 {
                     sw.Write(JsonConvert.SerializeObject(this));
@@ -65,11 +69,17 @@ namespace osu.Framework.Configuration
 
         protected override void PerformLoad()
         {
-            if (storage.Exists(FILENAME))
+            string filename = filenamePrefix + FILENAME;
+
+            // the unprefixed file is used as a starting point.
+            if (!storage.Exists(filename))
+                filename = FILENAME;
+
+            if (storage.Exists(filename))
             {
                 try
                 {
-                    using (Stream stream = storage.GetStream(FILENAME, FileAccess.Read, FileMode.Open))
+                    using (Stream stream = storage.GetStream(filename, FileAccess.Read, FileMode.Open))
                     using (var sr = new StreamReader(stream))
                     {
                         JsonConvert.PopulateObject(sr.ReadToEnd(), this, new JsonSerializerSettings
