@@ -61,9 +61,11 @@ namespace osu.Framework.Graphics.Containers
 
         public IShader TextureShader { get; private set; }
 
+        private IShader downsampleShader;
         private IShader blurShader;
         private IShader blendShader;
 
+        IShader IBackdropBlurDrawable.DownsampleShader => downsampleShader;
         IShader IBackdropBlurDrawable.BlurShader => blurShader;
         IShader IBackdropBlurDrawable.BlendShader => blendShader;
 
@@ -86,6 +88,7 @@ namespace osu.Framework.Graphics.Containers
         private void load(ShaderManager shaders)
         {
             TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE);
+            downsampleShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.BACKDROP_DOWNSAMPLE);
             blurShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.BLUR);
             blendShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.BACKDROP_BLUR_BLEND);
         }

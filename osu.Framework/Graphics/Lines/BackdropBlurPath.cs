@@ -111,9 +111,11 @@ namespace osu.Framework.Graphics.Lines
         [Resolved(CanBeNull = true)]
         private IBackbufferProvider backbufferProvider { get; set; }
 
+        private IShader downsampleShader;
         private IShader blurShader;
         private IShader blendShader;
 
+        IShader IBackdropBlurDrawable.DownsampleShader => downsampleShader;
         IShader IBackdropBlurDrawable.BlurShader => blurShader;
         IShader IBackdropBlurDrawable.BlendShader => blendShader;
 
@@ -124,6 +126,7 @@ namespace osu.Framework.Graphics.Lines
         [BackgroundDependencyLoader]
         private void load(ShaderManager shaders)
         {
+            downsampleShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.BACKDROP_DOWNSAMPLE);
             blurShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.BLUR);
             blendShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.PATH_BACKDROP_BLUR_BLEND);
         }

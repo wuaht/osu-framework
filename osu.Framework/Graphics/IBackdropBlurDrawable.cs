@@ -49,6 +49,11 @@ namespace osu.Framework.Graphics
         Vector2 EffectBufferScale { get; }
 
         /// <summary>
+        /// The shader used to downsample the backdrop into the effect buffers when they are smaller than the backbuffer.
+        /// </summary>
+        IShader DownsampleShader { get; }
+
+        /// <summary>
         /// The shader used to blur the backdrop.
         /// </summary>
         IShader BlurShader { get; }

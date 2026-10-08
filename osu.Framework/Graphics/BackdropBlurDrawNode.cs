@@ -50,9 +50,11 @@ namespace osu.Framework.Graphics
         private Vector2 effectBufferSize;
         private RectangleF? backbufferDrawRectangle;
 
+        private IShader downsampleShader;
         private IShader blurShader;
         private IShader blendShader;
 
+        private IUniformBuffer<DownsampleParameters> downsampleParametersBuffer;
         private IUniformBuffer<BlurParameters> blurParametersBuffer;
         private IUniformBuffer<BlendParameters> blendParametersBuffer;
 
@@ -78,6 +80,7 @@ namespace osu.Framework.Graphics
 
             backbufferDrawRectangle = Source.BackbufferDrawRectangle;
 
+            downsampleShader = Source.DownsampleShader;
             blurShader = Source.BlurShader;
             blendShader = Source.BlendShader;
         }
@@ -110,24 +113,32 @@ namespace osu.Framework.Graphics
             renderer.PushDepthInfo(new DepthInfo(false));
 
             // The first pass samples the backbuffer, positioned such that the region behind this drawable fills the effect buffer.
-            RectangleF backbufferRect = backbufferDrawRectangle.Value.RelativeIn(DrawRectangle) * effectBufferSize;
+            IFrameBuffer source = backbuffer;
+            RectangleF sourceRect = backbufferDrawRectangle.Value.RelativeIn(DrawRectangle) * effectBufferSize;
+
+            // The amount of backbuffer pixels covered by a single pixel of the effect buffer.
+            Vector2 footprint = new Vector2(backbuffer.Texture.Width / sourceRect.Width, backbuffer.Texture.Height / sourceRect.Height);
+
+            // A bilinear sample averages up to 2x2 pixels. If the effect buffer is any smaller, sampling the backbuffer directly would skip pixels,
+            // which makes thin or moving content behind this drawable shimmer. The backbuffer is downsampled with a box filter in that case.
+            if (footprint.X > 2 || footprint.Y > 2)
+            {
+                drawDownsampledFrameBuffer(renderer, backbuffer, sourceRect, footprint);
+
+                source = SharedData.CurrentEffectBuffer;
+                sourceRect = new RectangleF(0, 0, source.Texture.Width, source.Texture.Height);
+            }
 
             if (blurRadius.X > 0)
             {
-                drawBlurredFrameBuffer(renderer, backbuffer, backbufferRect, blurRadius.X, blurSigma.X, blurRotation);
-                backbuffer = null;
+                drawBlurredFrameBuffer(renderer, source, sourceRect, blurRadius.X, blurSigma.X, blurRotation);
+
+                source = SharedData.CurrentEffectBuffer;
+                sourceRect = new RectangleF(0, 0, source.Texture.Width, source.Texture.Height);
             }
 
             if (blurRadius.Y > 0)
-            {
-                if (backbuffer != null)
-                    drawBlurredFrameBuffer(renderer, backbuffer, backbufferRect, blurRadius.Y, blurSigma.Y, blurRotation + 90);
-                else
-                {
-                    IFrameBuffer current = SharedData.CurrentEffectBuffer;
-                    drawBlurredFrameBuffer(renderer, current, new RectangleF(0, 0, current.Texture.Width, current.Texture.Height), blurRadius.Y, blurSigma.Y, blurRotation + 90);
-                }
-            }
+                drawBlurredFrameBuffer(renderer, source, sourceRect, blurRadius.Y, blurSigma.Y, blurRotation + 90);
 
             renderer.PopDepthInfo();
             renderer.PopScissorState();
@@ -135,10 +146,49 @@ namespace osu.Framework.Graphics
             backdropPopulated = true;
         }
 
+        private void drawDownsampledFrameBuffer(IRenderer renderer, IFrameBuffer source, RectangleF sourceRect, Vector2 footprint)
+        {
+            downsampleParametersBuffer ??= renderer.CreateUniformBuffer<DownsampleParameters>();
+            downsampleParametersBuffer.Data = downsampleParametersBuffer.Data with
+            {
+                TexelSize = new Vector2(1f / source.Texture.Width, 1f / source.Texture.Height),
+                // Each tap averages 2x2 pixels. Limited by the shader.
+                TapsX = Math.Clamp((int)MathF.Ceiling(footprint.X / 2), 1, 8),
+                TapsY = Math.Clamp((int)MathF.Ceiling(footprint.Y / 2), 1, 8),
+            };
+
+            downsampleShader.BindUniformBlock("m_DownsampleParameters", downsampleParametersBuffer);
+            drawEffectPass(renderer, downsampleShader, source, sourceRect);
+        }
+
         private void drawBlurredFrameBuffer(IRenderer renderer, IFrameBuffer source, RectangleF sourceRect, int kernelRadius, float sigma, float rotation)
         {
-            blurParametersBuffer ??= renderer.CreateUniformBuffer<BlurParameters>();
+            float radians = float.DegreesToRadians(rotation);
 
+            blurParametersBuffer ??= renderer.CreateUniformBuffer<BlurParameters>();
+            blurParametersBuffer.Data = blurParametersBuffer.Data with
+            {
+                Radius = kernelRadius,
+                Sigma = sigma,
+                // The blur kernel steps by single pixels of the effect buffer, regardless of the resolution of the source.
+                TexSize = sourceRect.Size,
+                Direction = new Vector2(MathF.Cos(radians), MathF.Sin(radians))
+            };
+
+            blurShader.BindUniformBlock("m_BlurParameters", blurParametersBuffer);
+            drawEffectPass(renderer, blurShader, source, sourceRect);
+        }
+
+        /// <summary>
+        /// Draws <paramref name="source"/> with <paramref name="shader"/> into the next effect buffer.
+        /// The uniform blocks of <paramref name="shader"/> must already be bound.
+        /// </summary>
+        /// <param name="renderer">The renderer.</param>
+        /// <param name="shader">The shader to draw with.</param>
+        /// <param name="source">The framebuffer to draw.</param>
+        /// <param name="sourceRect">Where <paramref name="source"/> is drawn, in pixels of the effect buffer.</param>
+        private void drawEffectPass(IRenderer renderer, IShader shader, IFrameBuffer source, RectangleF sourceRect)
+        {
             IFrameBuffer target = SharedData.GetNextEffectBuffer();
 
             renderer.SetBlend(BlendingParameters.None);
@@ -151,21 +201,9 @@ namespace osu.Framework.Graphics
                 // Parts of the effect buffer may not be covered by the source (e.g. if this drawable extends beyond the backbuffer provider).
                 renderer.Clear(new ClearInfo(Color4.Transparent));
 
-                float radians = float.DegreesToRadians(rotation);
-
-                blurParametersBuffer.Data = blurParametersBuffer.Data with
-                {
-                    Radius = kernelRadius,
-                    Sigma = sigma,
-                    // The blur kernel steps by single pixels of the effect buffer, regardless of the resolution of the source.
-                    TexSize = sourceRect.Size,
-                    Direction = new Vector2(MathF.Cos(radians), MathF.Sin(radians))
-                };
-
-                blurShader.BindUniformBlock("m_BlurParameters", blurParametersBuffer);
-                blurShader.Bind();
+                shader.Bind();
                 renderer.DrawFrameBuffer(source, sourceRect, ColourInfo.SingleColour(Color4.White));
-                blurShader.Unbind();
+                shader.Unbind();
 
                 renderer.PopViewport();
             }
@@ -209,8 +247,17 @@ namespace osu.Framework.Graphics
         {
             base.Dispose(isDisposing);
 
+            downsampleParametersBuffer?.Dispose();
             blurParametersBuffer?.Dispose();
             blendParametersBuffer?.Dispose();
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        private record struct DownsampleParameters
+        {
+            public UniformVector2 TexelSize;
+            public UniformInt TapsX;
+            public UniformInt TapsY;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
