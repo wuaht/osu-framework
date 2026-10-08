@@ -113,7 +113,8 @@ namespace osu.Framework.Graphics.Containers
             Invalidate(Invalidation.DrawNode);
         }
 
-        public Color4 BackgroundColour => Color4.Transparent;
+        // Transparent black, as Color4.Transparent is transparent white, which would brighten translucent content.
+        public Color4 BackgroundColour => new Color4(0, 0, 0, 0);
 
         public DrawColourInfo? FrameBufferDrawColour => base.DrawColourInfo;
 
