@@ -41,7 +41,7 @@ namespace osu.Framework.Graphics.Containers
     /// appearance of the container at the cost of performance. Such effects include
     /// uniform fading of children, blur, and other post-processing effects.
     /// </summary>
-    public partial class BufferedContainer<T> : Container<T>, IBufferedContainer, IBufferedDrawable
+    public partial class BufferedContainer<T> : Container<T>, IBufferedContainer, IBufferedDrawable, IBackbufferProvider
         where T : Drawable
     {
         private bool drawOriginal;
@@ -369,6 +369,31 @@ namespace osu.Framework.Graphics.Containers
         /// </summary>
         /// <returns>The view.</returns>
         public BufferedContainerView<T> CreateView() => new BufferedContainerView<T>(this, sharedData);
+
+        RectangleF IBackbufferProvider.BackbufferDrawRectangle
+        {
+            get
+            {
+                RectangleF rect = ScreenSpaceDrawQuad.AABBFloat;
+
+                // Matches the clipping performed by BufferedDrawNode.
+                if (sharedData.ClipToRootNode)
+                {
+                    IDrawable rootNode = this;
+                    while (rootNode.Parent != null)
+                        rootNode = rootNode.Parent;
+
+                    rect.Intersect(new RectangleF(rootNode.ScreenSpaceDrawQuad.TopLeft, rootNode.ScreenSpaceDrawQuad.Size));
+                }
+
+                return rect;
+            }
+        }
+
+        void IBackbufferProvider.RequestBackbuffer()
+        {
+            // Always drawn to a framebuffer.
+        }
 
         public DrawColourInfo? FrameBufferDrawColour => base.DrawColourInfo;
 

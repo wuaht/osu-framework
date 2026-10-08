@@ -85,7 +85,9 @@ namespace osu.Framework.Graphics
             if (!SharedData.IsInitialised)
                 SharedData.Initialise(renderer);
 
-            if (RequiresRedraw)
+            bool requiresMainBufferRedraw = RequiresMainBufferRedraw;
+
+            if (requiresMainBufferRedraw || RequiresEffectBufferRedraw)
             {
                 FrameStatistics.Increment(StatisticsCounterType.FBORedraw);
 
@@ -93,17 +95,20 @@ namespace osu.Framework.Graphics
 
                 using (establishFrameBufferViewport(renderer))
                 {
-                    // Fill the frame buffer with drawn children
-                    using (BindFrameBuffer(SharedData.MainBuffer))
+                    if (requiresMainBufferRedraw)
                     {
-                        // We need to draw children as if they were zero-based to the top-left of the texture.
-                        // We can do this by adding a translation component to our (orthogonal) projection matrix.
-                        renderer.PushOrtho(screenSpaceDrawRectangle);
-                        renderer.Clear(new ClearInfo(backgroundColour));
+                        // Fill the frame buffer with drawn children
+                        using (BindFrameBuffer(SharedData.MainBuffer))
+                        {
+                            // We need to draw children as if they were zero-based to the top-left of the texture.
+                            // We can do this by adding a translation component to our (orthogonal) projection matrix.
+                            renderer.PushOrtho(screenSpaceDrawRectangle);
+                            renderer.Clear(new ClearInfo(backgroundColour));
 
-                        DrawOther(Child, renderer);
+                            DrawOther(Child, renderer);
 
-                        renderer.PopOrtho();
+                            renderer.PopOrtho();
+                        }
                     }
 
                     PopulateContents(renderer);
@@ -119,6 +124,16 @@ namespace osu.Framework.Graphics
 
             UnbindTextureShader(renderer);
         }
+
+        /// <summary>
+        /// Whether the main buffer of <see cref="SharedData"/> should be redrawn this frame.
+        /// </summary>
+        protected virtual bool RequiresMainBufferRedraw => RequiresRedraw;
+
+        /// <summary>
+        /// Whether the effect buffers of <see cref="SharedData"/> should be repopulated this frame, even if the main buffer is not redrawn.
+        /// </summary>
+        protected virtual bool RequiresEffectBufferRedraw => RequiresRedraw;
 
         /// <summary>
         /// Populates the contents of the effect buffers of <see cref="SharedData"/>.
@@ -146,12 +161,18 @@ namespace osu.Framework.Graphics
         protected ValueInvokeOnDisposal<IFrameBuffer> BindFrameBuffer(IFrameBuffer frameBuffer)
         {
             // This setter will also take care of allocating a texture of appropriate size within the frame buffer.
-            frameBuffer.Size = frameBufferSize;
+            frameBuffer.Size = GetFrameBufferSize(frameBuffer);
 
             frameBuffer.Bind();
 
             return new ValueInvokeOnDisposal<IFrameBuffer>(frameBuffer, static b => b.Unbind());
         }
+
+        /// <summary>
+        /// Retrieves the size which the given <see cref="IFrameBuffer"/> should be allocated with when bound via <see cref="BindFrameBuffer"/>.
+        /// </summary>
+        /// <param name="frameBuffer">The <see cref="IFrameBuffer"/> which is about to be bound.</param>
+        protected virtual Vector2 GetFrameBufferSize(IFrameBuffer frameBuffer) => frameBufferSize;
 
         private ValueInvokeOnDisposal<(BufferedDrawNode node, IRenderer renderer)> establishFrameBufferViewport(IRenderer renderer)
         {

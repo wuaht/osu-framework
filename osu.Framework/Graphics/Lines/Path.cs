@@ -315,9 +315,17 @@ namespace osu.Framework.Graphics.Lines
             return result;
         }
 
-        private readonly BufferedDrawNodeSharedData sharedData = new BufferedDrawNodeSharedData(TexturePixelFormat.R16Float, clipToRootNode: true);
+        private BufferedDrawNodeSharedData sharedData;
 
-        protected override DrawNode CreateDrawNode() => new PathBufferedDrawNode(this, new PathDrawNode(this), sharedData);
+        private protected BufferedDrawNodeSharedData SharedData => sharedData ??= CreateSharedData();
+
+        /// <summary>
+        /// Creates the <see cref="BufferedDrawNodeSharedData"/> for this path.
+        /// The main buffer must use <see cref="TexturePixelFormat.R16Float"/>, as it stores the distance from the edge of the path.
+        /// </summary>
+        private protected virtual BufferedDrawNodeSharedData CreateSharedData() => new BufferedDrawNodeSharedData(TexturePixelFormat.R16Float, clipToRootNode: true);
+
+        protected override DrawNode CreateDrawNode() => new PathBufferedDrawNode(this, new PathDrawNode(this), SharedData);
 
         private class PathBufferedDrawNode : BufferedDrawNode
         {
@@ -373,7 +381,7 @@ namespace osu.Framework.Graphics.Lines
             texture?.Dispose();
             texture = null;
 
-            sharedData.Dispose();
+            sharedData?.Dispose();
         }
     }
 }
