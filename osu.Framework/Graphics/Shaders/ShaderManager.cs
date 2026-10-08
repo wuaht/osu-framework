@@ -164,6 +164,7 @@ namespace osu.Framework.Graphics.Shaders
         public const string GRAYSCALE = "Grayscale";
         public const string VIDEO = "Video";
         public const string BACKDROP_BLUR_BLEND = "BackdropBlurBlend";
+        public const string BACKDROP_DOWNSAMPLE = "BackdropDownsample";
         public const string PATH_BACKDROP_BLUR_BLEND = "PathBackdropBlurBlend";
     }
 }
