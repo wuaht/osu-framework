@@ -249,6 +249,20 @@ namespace osu.Framework.Platform
         void SetIconFromStream(Stream imageStream);
 
         /// <summary>
+        /// Sets the image of the OS cursor while it is over this window.
+        /// The cursor is only visible when <see cref="CursorState"/> does not contain <see cref="Platform.CursorState.Hidden"/>.
+        /// </summary>
+        /// <remarks>
+        /// The image may be updated frequently (e.g. to animate the cursor), but each update recreates the native cursor.
+        /// Not supported by all windowing backends, in which case the default OS cursor is shown.
+        /// </remarks>
+        /// <param name="image">The cursor image, or <c>null</c> to restore the default OS cursor. The image is copied and may be disposed afterwards.</param>
+        /// <param name="hotspot">The position of the cursor's click point within <paramref name="image"/>, in pixels.</param>
+        void SetCursorImage(SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>? image, Point hotspot)
+        {
+        }
+
+        /// <summary>
         /// Convert a screen based coordinate to local window space.
         /// </summary>
         /// <param name="point"></param>

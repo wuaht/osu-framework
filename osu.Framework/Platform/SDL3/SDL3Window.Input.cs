@@ -107,6 +107,53 @@ namespace osu.Framework.Platform.SDL3
             });
 
         /// <summary>
+        /// The custom cursor set via <see cref="SetCursorImage"/>, if any. Only accessed from the window thread.
+        /// </summary>
+        private SDL_Cursor* customCursor;
+
+        public void SetCursorImage(SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>? image, Point hotspot)
+        {
+            // Copy the pixels, as the image may be disposed by the time the command runs.
+            SixLabors.ImageSharp.PixelFormats.Rgba32[]? pixels = null;
+            int width = 0, height = 0;
+
+            if (image != null)
+            {
+                width = image.Width;
+                height = image.Height;
+                pixels = new SixLabors.ImageSharp.PixelFormats.Rgba32[width * height];
+                image.CopyPixelDataTo(pixels);
+            }
+
+            ScheduleCommand(() =>
+            {
+                SDL_Cursor* previousCursor = customCursor;
+                customCursor = null;
+
+                if (pixels != null)
+                {
+                    fixed (SixLabors.ImageSharp.PixelFormats.Rgba32* ptr = pixels)
+                    {
+                        var pixelFormat = SDL_GetPixelFormatForMasks(32, 0xff, 0xff00, 0xff0000, 0xff000000);
+                        SDL_Surface* surface = SDL3Extensions.LogErrorIfFailed(SDL_CreateSurfaceFrom(width, height, pixelFormat, new IntPtr(ptr), width * 4));
+
+                        if (surface != null)
+                        {
+                            customCursor = SDL3Extensions.LogErrorIfFailed(SDL_CreateColorCursor(surface, hotspot.X, hotspot.Y));
+                            SDL_DestroySurface(surface);
+                        }
+                    }
+                }
+
+                SDL_SetCursor(customCursor != null ? customCursor : SDL_GetDefaultCursor()).LogErrorIfFailed();
+
+                // The previous cursor must only be destroyed once it is no longer the active cursor.
+                if (previousCursor != null)
+                    SDL_DestroyCursor(previousCursor);
+            });
+        }
+
+        /// <summary>
         /// Updates OS cursor confinement based on the current <see cref="CursorState"/>, <see cref="CursorConfineRect"/> and <see cref="RelativeMouseMode"/>.
         /// </summary>
         private void updateCursorConfinement()
