@@ -19,10 +19,15 @@ lowp vec4 blendWithBackdrop(lowp vec4 texel, lowp vec4 backdrop, mediump vec2 te
 
     if (background.a > 0.0)
     {
-        // Tint the backdrop by the content colour. The content colour is not premultiplied, so it must not be divided by its alpha
-        // (doing so would over-brighten the backdrop of very transparent content).
+        // Tint the backdrop with the hue and saturation of the content colour, while keeping the brightness of the backdrop,
+        // such that the content colour is clearly visible while the shapes behind it remain recognisable.
+        // The tint is intentionally independent of the alpha of the content, such that transparent content still tints the backdrop.
+        const lowp vec3 luma = vec3(0.299, 0.587, 0.114);
+
         lowp vec3 backgroundColour = background.rgb / background.a;
-        background.rgb = mix(backgroundColour, backgroundColour * foreground.rgb, backdropTintStrength * foreground.a) * background.a;
+        lowp vec3 tintedColour = min(foreground.rgb * dot(backgroundColour, luma) / max(dot(foreground.rgb, luma), 0.001), vec3(1.0));
+
+        background.rgb = mix(backgroundColour, tintedColour, backdropTintStrength) * background.a;
 
         lowp float alpha = background.a + (1.0 - background.a) * foreground.a;
         result = vec4(mix(background.rgb, foreground.rgb, foreground.a) / alpha, alpha);
