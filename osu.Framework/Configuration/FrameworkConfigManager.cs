@@ -52,8 +52,11 @@ namespace osu.Framework.Configuration
 #pragma warning restore 618
         }
 
-        public FrameworkConfigManager(Storage storage, IDictionary<FrameworkSetting, object> defaultOverrides = null)
-            : base(storage, defaultOverrides)
+        /// <param name="storage">The storage to store the config in.</param>
+        /// <param name="defaultOverrides">Overrides for the default values of settings.</param>
+        /// <param name="filenamePrefix">A prefix for the config's filename. See <see cref="HostOptions.ConfigFilenamePrefix"/>.</param>
+        public FrameworkConfigManager(Storage storage, IDictionary<FrameworkSetting, object> defaultOverrides = null, string filenamePrefix = null)
+            : base(storage, defaultOverrides, filenamePrefix)
         {
         }
 

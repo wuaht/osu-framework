@@ -34,6 +34,13 @@ namespace osu.Framework
         public bool PortableInstallation { get; set; }
 
         /// <summary>
+        /// A prefix for the names of the framework's configuration files (e.g. <c>framework.ini</c> and <c>input.json</c>),
+        /// so that multiple applications sharing the same storage can keep separate settings.
+        /// If a prefixed file doesn't exist yet, the settings are loaded from the unprefixed file as a starting point.
+        /// </summary>
+        public string? ConfigFilenamePrefix { get; set; }
+
+        /// <summary>
         /// Whether to bypass the compositor. Defaults to <c>true</c>.
         /// </summary>
         /// <remarks>

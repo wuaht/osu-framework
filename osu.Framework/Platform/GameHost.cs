@@ -1235,7 +1235,7 @@ namespace osu.Framework.Platform
                 defaultOverrides.Add(FrameworkSetting.WindowMode, Window?.DefaultWindowMode ?? WindowMode.Windowed);
 
             Dependencies.Cache(DebugConfig = new FrameworkDebugConfigManager());
-            Dependencies.Cache(Config = new FrameworkConfigManager(Storage, defaultOverrides));
+            Dependencies.Cache(Config = new FrameworkConfigManager(Storage, defaultOverrides, Options.ConfigFilenamePrefix));
 
             windowMode = Config.GetBindable<WindowMode>(FrameworkSetting.WindowMode);
             windowMode.BindValueChanged(mode =>
@@ -1310,7 +1310,7 @@ namespace osu.Framework.Platform
                 threadRunner.SetCulture(culture);
             }, true);
 
-            inputConfig = new InputConfigManager(Storage, AvailableInputHandlers);
+            inputConfig = new InputConfigManager(Storage, AvailableInputHandlers, Options.ConfigFilenamePrefix);
         }
 
         /// <summary>
