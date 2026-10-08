@@ -19,11 +19,10 @@ lowp vec4 blendWithBackdrop(lowp vec4 texel, lowp vec4 backdrop, mediump vec2 te
 
     if (background.a > 0.0)
     {
-        if (foreground.a > 0.0)
-        {
-            lowp vec3 backgroundColour = background.rgb / background.a;
-            background.rgb = mix(backgroundColour, backgroundColour * foreground.rgb / foreground.a, backdropTintStrength * foreground.a) * background.a;
-        }
+        // Tint the backdrop by the content colour. The content colour is not premultiplied, so it must not be divided by its alpha
+        // (doing so would over-brighten the backdrop of very transparent content).
+        lowp vec3 backgroundColour = background.rgb / background.a;
+        background.rgb = mix(backgroundColour, backgroundColour * foreground.rgb, backdropTintStrength * foreground.a) * background.a;
 
         lowp float alpha = background.a + (1.0 - background.a) * foreground.a;
         result = vec4(mix(background.rgb, foreground.rgb, foreground.a) / alpha, alpha);
