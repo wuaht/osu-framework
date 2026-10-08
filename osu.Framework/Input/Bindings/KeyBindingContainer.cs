@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using osu.Framework.Extensions;
 using osu.Framework.Extensions.ListExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -210,6 +211,10 @@ namespace osu.Framework.Input.Bindings
 
         private bool handleNewPressed(InputState state, InputKey newKey, Vector2? scrollDelta = null, bool isPrecise = false)
         {
+            // not every input has an InputKey equivalent (e.g. joystick buttons above Joystick64).
+            if (!newKey.IsPhysical())
+                return false;
+
             pressedInputKeys.Add(newKey);
 
             float scrollAmount = getScrollAmount(newKey, scrollDelta);
