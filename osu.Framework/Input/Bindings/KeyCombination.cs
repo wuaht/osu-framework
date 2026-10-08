@@ -339,7 +339,13 @@ namespace osu.Framework.Input.Bindings
             if (state.Joystick != null)
             {
                 foreach (var joystickButton in state.Joystick.Buttons)
-                    keys.Add(FromJoystickButton(joystickButton));
+                {
+                    var iKey = FromJoystickButton(joystickButton);
+
+                    // not every joystick button has an InputKey equivalent (e.g. buttons above Joystick64).
+                    if (iKey.IsPhysical())
+                        keys.Add(iKey);
+                }
             }
 
             if (state.Midi != null)
