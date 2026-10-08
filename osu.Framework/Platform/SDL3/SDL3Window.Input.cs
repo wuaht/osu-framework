@@ -384,6 +384,10 @@ namespace osu.Framework.Platform.SDL3
         {
             var button = evtCbutton.Button.ToJoystickButton();
 
+            // buttons which have no JoystickButton equivalent (e.g. paddles, touchpad or the share button).
+            if (button == 0)
+                return;
+
             switch (evtCbutton.type)
             {
                 case SDL_EventType.SDL_EVENT_GAMEPAD_BUTTON_DOWN:
