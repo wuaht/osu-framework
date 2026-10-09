@@ -3,6 +3,7 @@
 
 #nullable disable
 
+using System;
 using System.Diagnostics;
 using osu.Framework.Bindables;
 using osu.Framework.Extensions.EnumExtensions;
@@ -38,6 +39,20 @@ namespace osu.Framework.Input.Handlers.Mouse
         };
 
         public override string Description => "Mouse";
+
+        /// <summary>
+        /// Invoked with each relative mouse movement, in device units (unaffected by <see cref="Sensitivity"/> and the window scale).
+        /// Only invoked while relative mode is active. Invoked on the thread handling window events.
+        /// </summary>
+        /// <remarks>
+        /// Unlike the cursor position, this isn't limited by the bounds of the window, which makes it suitable for e.g. controlling a camera.
+        /// </remarks>
+        public event Action<Vector2> RawRelativeMovement;
+
+        /// <summary>
+        /// Whether relative mode is currently active, in which case <see cref="RawRelativeMovement"/> is invoked.
+        /// </summary>
+        public bool IsRelativeModeActive => window?.RelativeMouseMode == true;
 
         public override bool IsActive => true;
 
@@ -208,6 +223,9 @@ namespace osu.Framework.Input.Handlers.Mouse
 
         protected virtual void HandleMouseMoveRelative(Vector2 delta)
         {
+            // the window scales relative movements along with absolute positions, which is undone here.
+            RawRelativeMovement?.Invoke(window.Scale > 0 ? delta / window.Scale : delta);
+
             enqueueInput(new MousePositionRelativeInput { Delta = delta * (float)Sensitivity.Value });
         }
 
