@@ -26,5 +26,11 @@ namespace osu.Framework.Configuration
 
         [Description("Basically unlimited")]
         Unlimited,
+
+        [Description("True unlimited")]
+        TrueUnlimited,
+
+        [Description("Custom FPS limit")]
+        Custom,
     }
 }
