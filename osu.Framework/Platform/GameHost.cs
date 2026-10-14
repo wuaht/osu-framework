@@ -1214,6 +1214,7 @@ namespace osu.Framework.Platform
         private Bindable<bool> bypassFrontToBackPass;
 
         private Bindable<FrameSync> frameSyncMode;
+        private Bindable<int> customFrameLimit;
 
         private IBindable<DisplayMode> currentDisplayMode;
 
@@ -1256,6 +1257,9 @@ namespace osu.Framework.Platform
 
             frameSyncMode = Config.GetBindable<FrameSync>(FrameworkSetting.FrameSync);
             frameSyncMode.ValueChanged += _ => updateFrameSyncMode();
+
+            customFrameLimit = Config.GetBindable<int>(FrameworkSetting.CustomFrameLimit);
+            customFrameLimit.ValueChanged += _ => updateFrameSyncMode();
 
 #pragma warning disable 618
             // pragma region can be removed 20210911
@@ -1380,7 +1384,25 @@ namespace osu.Framework.Platform
                     break;
             }
 
-            if (!AllowBenchmarkUnlimitedFrames)
+            bool bypassSaneLimit = AllowBenchmarkUnlimitedFrames;
+
+            switch (frameSyncMode.Value)
+            {
+                case FrameSync.TrueUnlimited:
+                    // double.MaxValue disables throttling entirely (no 1000hz cap, no sleeping).
+                    drawLimiter = double.MaxValue;
+                    updateLimiter = double.MaxValue;
+                    bypassSaneLimit = true;
+                    break;
+
+                case FrameSync.Custom:
+                    drawLimiter = customFrameLimit.Value;
+                    updateLimiter = drawLimiter * 2;
+                    bypassSaneLimit = true;
+                    break;
+            }
+
+            if (!bypassSaneLimit)
             {
                 drawLimiter = Math.Min(maximum_sane_fps, drawLimiter);
                 updateLimiter = Math.Min(maximum_sane_fps, updateLimiter);

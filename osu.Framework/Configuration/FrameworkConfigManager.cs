@@ -40,6 +40,7 @@ namespace osu.Framework.Configuration
             SetDefault(FrameworkSetting.SizeFullscreen, new Size(9999, 9999), new Size(320, 240));
             SetDefault(FrameworkSetting.MinimiseOnFocusLossInFullscreen, RuntimeInfo.IsDesktop);
             SetDefault(FrameworkSetting.FrameSync, FrameSync.Limit2x);
+            SetDefault(FrameworkSetting.CustomFrameLimit, 1000, 15, 10000);
             SetDefault(FrameworkSetting.WindowMode, WindowMode.Windowed);
             SetDefault(FrameworkSetting.Renderer, RendererType.Automatic);
             SetDefault(FrameworkSetting.ShowUnicode, false);
@@ -106,6 +107,11 @@ namespace osu.Framework.Configuration
         WindowMode,
         ConfineMouseMode,
         FrameSync,
+
+        /// <summary>
+        /// The frame rate used when <see cref="FrameSync"/> is <see cref="Configuration.FrameSync.Custom"/>. May exceed 1000.
+        /// </summary>
+        CustomFrameLimit,
         ExecutionMode,
 
         ShowUnicode,
