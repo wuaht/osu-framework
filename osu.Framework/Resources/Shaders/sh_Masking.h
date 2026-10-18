@@ -61,11 +61,12 @@ lowp vec4 getBorderColour()
     return mix(top, bottom, relativeTexCoord.y);
 }
 
-lowp vec4 getRoundedColor(lowp vec4 texel, mediump vec2 texCoord)
+// Applies masking to an already coloured content colour, for shaders which colour the texture in their own way.
+lowp vec4 getRoundedColorForContent(lowp vec4 contentColour, mediump vec2 texCoord)
 {
 	if (!g_IsMasking && v_BlendRange == vec2(0.0))
 	{
-		return v_Colour * texel;
+		return contentColour;
 	}
 
 	highp float dist = distanceFromRoundedRect(vec2(0.0), g_CornerRadius);
@@ -113,8 +114,6 @@ lowp vec4 getRoundedColor(lowp vec4 texel, mediump vec2 texCoord)
 	highp float borderStart = 1.0 + fadeStart - g_BorderThickness;
 	lowp float colourWeight = min(borderStart - dist, 1.0);
 
-	lowp vec4 contentColour = v_Colour * texel;
-
 	if (colourWeight == 1.0)
 		return vec4(contentColour.rgb, contentColour.a * alphaFactor);
 
@@ -126,6 +125,11 @@ lowp vec4 getRoundedColor(lowp vec4 texel, mediump vec2 texCoord)
 	contentColour.a *= alphaFactor;
 	borderColour.a *= 1.0 - colourWeight;
 	return blend(borderColour, contentColour);
+}
+
+lowp vec4 getRoundedColor(lowp vec4 texel, mediump vec2 texCoord)
+{
+	return getRoundedColorForContent(v_Colour * texel, texCoord);
 }
 
 #endif
