@@ -3,6 +3,7 @@
 
 using osu.Framework.Allocation;
 using osu.Framework.Graphics.Primitives;
+using osuTK.Graphics;
 
 namespace osu.Framework.Graphics.Containers
 {
@@ -23,5 +24,12 @@ namespace osu.Framework.Graphics.Containers
         /// Must be called every update frame by drawables which depend on the framebuffer.
         /// </summary>
         void RequestBackbuffer();
+
+        /// <summary>
+        /// The colour which is assumed to be behind the framebuffer, where the children leave it transparent.
+        /// Backdrop blurs blend with this colour there, instead of only with the transparent backdrop.
+        /// Transparent by default.
+        /// </summary>
+        Color4 BackdropUnderlayColour => new Color4(0, 0, 0, 0);
     }
 }

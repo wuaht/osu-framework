@@ -73,6 +73,10 @@ namespace osu.Framework.Graphics.Containers
 
         RectangleF? IBackdropBlurDrawable.BackbufferDrawRectangle => backbufferDrawRectangle;
 
+        private Color4 backdropUnderlayColour = new Color4(0, 0, 0, 0);
+
+        Color4 IBackdropBlurDrawable.BackdropUnderlayColour => backdropUnderlayColour;
+
         private readonly BackdropBlurDrawNodeSharedData sharedData;
 
         /// <summary>
@@ -107,6 +111,7 @@ namespace osu.Framework.Graphics.Containers
                     backbufferProvider.RequestBackbuffer();
 
                 backbufferDrawRectangle = backbufferProvider.BackbufferDrawRectangle;
+                backdropUnderlayColour = backbufferProvider.BackdropUnderlayColour;
             }
 
             // The children and the backdrop may change at any time, so the frame buffers are redrawn every frame.

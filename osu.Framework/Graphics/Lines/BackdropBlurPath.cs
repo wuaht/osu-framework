@@ -13,6 +13,7 @@ using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Shaders.Types;
 using osu.Framework.Graphics.Textures;
 using osuTK;
+using osuTK.Graphics;
 
 namespace osu.Framework.Graphics.Lines
 {
@@ -123,6 +124,10 @@ namespace osu.Framework.Graphics.Lines
 
         RectangleF? IBackdropBlurDrawable.BackbufferDrawRectangle => backbufferDrawRectangle;
 
+        private Color4 backdropUnderlayColour = new Color4(0, 0, 0, 0);
+
+        Color4 IBackdropBlurDrawable.BackdropUnderlayColour => backdropUnderlayColour;
+
         [BackgroundDependencyLoader]
         private void load(ShaderManager shaders)
         {
@@ -146,6 +151,14 @@ namespace osu.Framework.Graphics.Lines
             if (backbufferDrawRectangle == null || !backbufferDrawRectangle.Value.Equals(rect))
             {
                 backbufferDrawRectangle = rect;
+                Invalidate(Invalidation.DrawNode);
+            }
+
+            Color4 underlay = backbufferProvider.BackdropUnderlayColour;
+
+            if (backdropUnderlayColour != underlay)
+            {
+                backdropUnderlayColour = underlay;
                 Invalidate(Invalidation.DrawNode);
             }
         }

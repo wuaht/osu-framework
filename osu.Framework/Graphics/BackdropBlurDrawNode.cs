@@ -49,6 +49,7 @@ namespace osu.Framework.Graphics
 
         private Vector2 effectBufferSize;
         private RectangleF? backbufferDrawRectangle;
+        private Color4 backdropUnderlay;
 
         private IShader downsampleShader;
         private IShader blurShader;
@@ -79,6 +80,7 @@ namespace osu.Framework.Graphics
             backdropTintStrength = Source.BackdropTintStrength;
 
             backbufferDrawRectangle = Source.BackbufferDrawRectangle;
+            backdropUnderlay = Source.BackdropUnderlayColour;
 
             downsampleShader = Source.DownsampleShader;
             blurShader = Source.BlurShader;
@@ -225,6 +227,8 @@ namespace osu.Framework.Graphics
                 MaskCutoff = maskCutoff,
                 BackdropOpacity = backdropOpacity,
                 BackdropTintStrength = backdropTintStrength,
+                // premultiplied, like the backdrop.
+                BackdropUnderlay = new Vector4(backdropUnderlay.R * backdropUnderlay.A, backdropUnderlay.G * backdropUnderlay.A, backdropUnderlay.B * backdropUnderlay.A, backdropUnderlay.A),
             };
 
             renderer.BindTexture(SharedData.CurrentEffectBuffer.Texture, BackdropTextureUnit);
@@ -277,6 +281,7 @@ namespace osu.Framework.Graphics
             public UniformFloat BackdropOpacity;
             public UniformFloat BackdropTintStrength;
             private readonly UniformPadding4 pad1;
+            public UniformVector4 BackdropUnderlay;
         }
     }
 

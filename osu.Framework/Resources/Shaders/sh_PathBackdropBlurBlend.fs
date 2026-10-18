@@ -29,6 +29,7 @@ layout(std140, set = 4, binding = 0) uniform m_BackdropBlendParameters
 	lowp float g_MaskCutoff;
 	lowp float g_BackdropOpacity;
 	lowp float g_BackdropTintStrength;
+	lowp vec4 g_BackdropUnderlay;
 };
 
 layout(location = 0) out vec4 o_Colour;
@@ -42,7 +43,7 @@ void main(void)
 
     lowp vec4 backdrop = texture(sampler2D(m_Texture2, m_Sampler2), v_TexCoord);
 
-    o_Colour = blendWithBackdrop(texel, backdrop, v_TexCoord, g_MaskCutoff, g_BackdropOpacity, g_BackdropTintStrength);
+    o_Colour = blendWithBackdrop(texel, backdrop, v_TexCoord, g_MaskCutoff, g_BackdropOpacity, g_BackdropTintStrength, g_BackdropUnderlay);
 }
 
 #endif

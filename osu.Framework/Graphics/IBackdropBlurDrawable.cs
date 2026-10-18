@@ -5,6 +5,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Shaders;
 using osuTK;
+using osuTK.Graphics;
 
 namespace osu.Framework.Graphics
 {
@@ -68,5 +69,10 @@ namespace osu.Framework.Graphics
         /// or null if there is no <see cref="IBackbufferProvider"/>.
         /// </summary>
         RectangleF? BackbufferDrawRectangle { get; }
+
+        /// <summary>
+        /// The colour behind the framebuffer of the nearest <see cref="IBackbufferProvider"/> (see <see cref="IBackbufferProvider.BackdropUnderlayColour"/>).
+        /// </summary>
+        Color4 BackdropUnderlayColour { get; }
     }
 }

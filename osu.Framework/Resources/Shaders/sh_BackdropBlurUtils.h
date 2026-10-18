@@ -6,14 +6,15 @@
 // Combines content with the blurred backdrop behind it.
 // texel: the content colour (straight alpha), without the draw colour applied.
 // backdrop: the blurred backdrop colour, as sampled from the effect buffer.
-lowp vec4 blendWithBackdrop(lowp vec4 texel, lowp vec4 backdrop, mediump vec2 texCoord, lowp float maskCutoff, lowp float backdropOpacity, lowp float backdropTintStrength)
+// backdropUnderlay: the colour behind the backdrop (premultiplied alpha), which shows through where the backdrop is transparent.
+lowp vec4 blendWithBackdrop(lowp vec4 texel, lowp vec4 backdrop, mediump vec2 texCoord, lowp float maskCutoff, lowp float backdropOpacity, lowp float backdropTintStrength, lowp vec4 backdropUnderlay)
 {
     // Regions of the content which are too transparent (e.g. shadows) do not receive a backdrop.
     if (texel.a <= maskCutoff)
         return getRoundedColor(texel, texCoord);
 
     lowp vec4 foreground = texel * v_Colour;
-    lowp vec4 background = backdrop * backdropOpacity;
+    lowp vec4 background = (backdrop + (1.0 - backdrop.a) * backdropUnderlay) * backdropOpacity;
 
     lowp vec4 result;
 
