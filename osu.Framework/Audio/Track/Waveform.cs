@@ -9,10 +9,10 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using ManagedBass;
-using osu.Framework.Utils;
 using osu.Framework.Audio.Callbacks;
 using osu.Framework.Extensions;
 using osu.Framework.Logging;
+using osu.Framework.Utils;
 
 namespace osu.Framework.Audio.Track
 {
