@@ -135,16 +135,7 @@ namespace osu.Framework.Graphics.Video
             bool outOfSync = false;
 
             if (peekFrame != null)
-            {
-                outOfSync = Math.Abs(PlaybackPosition - peekFrame.Time) > lenience_before_seek;
-
-                if (Loop)
-                {
-                    // handle looping bounds (as we could be in the roll-over process between loops).
-                    outOfSync &= Math.Abs(PlaybackPosition - decoder.Duration - peekFrame.Time) > lenience_before_seek &&
-                                 Math.Abs(PlaybackPosition + decoder.Duration - peekFrame.Time) > lenience_before_seek;
-                }
-            }
+                outOfSync = Math.Abs(distanceToPlaybackPosition(peekFrame)) > lenience_before_seek;
 
             // we are too far ahead or too far behind
             if (outOfSync && decoder.CanSeek)
@@ -196,11 +187,32 @@ namespace osu.Framework.Graphics.Video
 
         private bool checkNextFrameValid(DecodedFrame frame)
         {
-            // in the case of looping, we may start a seek back to the beginning but still receive some lingering frames from the end of the last loop. these should be allowed to continue playing.
-            if (Loop && Math.Abs((frame.Time - Duration) - PlaybackPosition) < lenience_before_seek)
-                return true;
+            double distance = distanceToPlaybackPosition(frame);
+            return distance >= 0 && distance < lenience_before_seek;
+        }
 
-            return frame.Time <= PlaybackPosition && Math.Abs(frame.Time - PlaybackPosition) < lenience_before_seek;
+        /// <summary>
+        /// How far the playback position is past the time of a frame, which is negative if the frame is still to be shown.
+        /// </summary>
+        /// <remarks>
+        /// When looping, the distance is taken across the loop boundary, so that lingering frames from the end of the last loop are shown before the ones of the next loop.
+        /// Without this, every frame of a video which is shorter than <see cref="lenience_before_seek"/> would be within the lenience, and the frames would be shown as fast as they are decoded.
+        /// </remarks>
+        private double distanceToPlaybackPosition(DecodedFrame frame)
+        {
+            double distance = PlaybackPosition - frame.Time;
+
+            if (Loop && Duration > 0)
+            {
+                distance %= Duration;
+
+                if (distance > Duration / 2)
+                    distance -= Duration;
+                else if (distance <= -Duration / 2)
+                    distance += Duration;
+            }
+
+            return distance;
         }
 
         protected override void Dispose(bool isDisposing)
