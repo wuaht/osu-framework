@@ -48,6 +48,11 @@ namespace osu.Framework.Graphics.UserInterface
         protected virtual float LeftRightPadding => 5;
 
         /// <summary>
+        /// Padding to be used on the right side of the TextContainer, which is <see cref="LeftRightPadding"/> by default.
+        /// </summary>
+        protected virtual float RightPadding => LeftRightPadding;
+
+        /// <summary>
         /// Maximum allowed length of text.
         /// </summary>
         /// <remarks>Any input beyond this limit will be dropped and then <see cref="NotifyInputError"/> will be called.</remarks>
@@ -652,15 +657,15 @@ namespace osu.Framework.Graphics.UserInterface
             if (hasSelection)
                 selectionWidth = getPositionAt(selectionRight) - cursorPos;
 
-            float cursorRelativePositionAxesInBox = (cursorPosEnd - textContainerPosX) / (DrawWidth - 2 * LeftRightPadding);
+            float cursorRelativePositionAxesInBox = (cursorPosEnd - textContainerPosX) / (DrawWidth - LeftRightPadding - RightPadding);
 
             //we only want to reposition the view when the cursor reaches near the extremities.
             if (cursorRelativePositionAxesInBox < 0.1 || cursorRelativePositionAxesInBox > 0.9)
             {
-                textContainerPosX = cursorPosEnd - DrawWidth / 2 + LeftRightPadding * 2;
+                textContainerPosX = cursorPosEnd - DrawWidth / 2 + LeftRightPadding + RightPadding;
             }
 
-            textContainerPosX = Math.Clamp(textContainerPosX, 0, Math.Max(0, TextFlow.DrawWidth - DrawWidth + LeftRightPadding * 2));
+            textContainerPosX = Math.Clamp(textContainerPosX, 0, Math.Max(0, TextFlow.DrawWidth - DrawWidth + LeftRightPadding + RightPadding));
 
             TextContainer.MoveToX(LeftRightPadding - textContainerPosX, 300, Easing.OutExpo);
 
@@ -1842,10 +1847,10 @@ namespace osu.Framework.Graphics.UserInterface
             float start = getPositionAt(startIndex) - textContainerPosX + LeftRightPadding;
             float end = getPositionAt(endIndex) - textContainerPosX + LeftRightPadding;
 
-            if (LeftRightPadding <= DrawWidth - LeftRightPadding)
+            if (LeftRightPadding <= DrawWidth - RightPadding)
             {
-                start = Math.Clamp(start, LeftRightPadding, DrawWidth - LeftRightPadding);
-                end = Math.Clamp(end, LeftRightPadding, DrawWidth - LeftRightPadding);
+                start = Math.Clamp(start, LeftRightPadding, DrawWidth - RightPadding);
+                end = Math.Clamp(end, LeftRightPadding, DrawWidth - RightPadding);
             }
             else
             {
