@@ -156,9 +156,13 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
                     void* srcPtr = data.ToPointer();
                     void* dstPtr = mappedData.Data.ToPointer();
 
+                    // The row pitch of the staging texture can be padded beyond the row length of the source (e.g. 256 bytes on D3D11).
+                    // Copying a whole row pitch would read past the end of the source on the last row, which crashes if that memory is not mapped.
+                    uint bytesPerRow = Math.Min(mappedData.RowPitch, (uint)rowLengthInBytes);
+
                     for (int i = 0; i < height; i++)
                     {
-                        Unsafe.CopyBlockUnaligned(dstPtr, srcPtr, mappedData.RowPitch);
+                        Unsafe.CopyBlockUnaligned(dstPtr, srcPtr, bytesPerRow);
 
                         srcPtr = Unsafe.Add<byte>(srcPtr, rowLengthInBytes);
                         dstPtr = Unsafe.Add<byte>(dstPtr, (int)mappedData.RowPitch);
