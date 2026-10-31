@@ -22,6 +22,8 @@ layout(set = 2, binding = 1) uniform lowp sampler m_Sampler2;
 layout(std140, set = 3, binding = 0) uniform m_PathTextureParameters
 {
 	highp vec4 TexRect1;
+	highp float g_GlassStart;
+	highp float g_GlassSeparation;
 };
 
 layout(std140, set = 4, binding = 0) uniform m_BackdropBlendParameters
@@ -59,10 +61,28 @@ lowp vec4 sampleLiquidGlassBackdrop(highp vec2 refractionOffset, highp vec2 disp
     return backdrop;
 }
 
-// The distance from the edge of the path in pixels at an offset from the current pixel, based on the distance relative to the radius stored in the frame buffer.
-highp float insidePath(highp vec2 offset)
+// The distance from the nearest edge of the piece of glass at a distance from the edge of the path (relative to its radius), and the width of the rounded edge of that piece, both in pixels.
+// The glass starts at g_GlassStart, and is split into an outer ring and an inner piece at g_GlassSeparation.
+highp vec2 pathGlass(highp float dstFromEdge)
 {
-    return texture(sampler2D(m_Texture, m_Sampler), v_TexCoord + offset / g_DrawSize).r * g_ShapeRadius;
+    highp float inside = (dstFromEdge - g_GlassStart) * g_ShapeRadius;
+    highp float separation = (g_GlassSeparation - g_GlassStart) * g_ShapeRadius;
+
+    if (separation <= 0.0)
+        return vec2(inside, g_Bevel);
+
+    // The ring is rounded on both sides.
+    if (inside < separation)
+        return vec2(min(inside, separation - inside), min(g_Bevel, separation * 0.5));
+
+    return vec2(inside - separation, g_Bevel);
+}
+
+// The height of the glass at an offset from the current pixel, based on the distance relative to the radius stored in the frame buffer.
+highp float pathGlassHeight(highp vec2 offset)
+{
+    highp vec2 glass = pathGlass(texture(sampler2D(m_Texture, m_Sampler), v_TexCoord + offset / g_DrawSize).r);
+    return liquidGlassHeight(glass.x, glass.y);
 }
 
 void main(void)
@@ -80,12 +100,13 @@ void main(void)
         highp vec2 delta = vec2(LIQUID_GLASS_STEP, 0.0);
 
         highp vec2 heightGradient = vec2(
-            liquidGlassHeight(insidePath(delta.xy), g_Bevel) - liquidGlassHeight(insidePath(-delta.xy), g_Bevel),
-            liquidGlassHeight(insidePath(delta.yx), g_Bevel) - liquidGlassHeight(insidePath(-delta.yx), g_Bevel)) / (2.0 * LIQUID_GLASS_STEP);
+            pathGlassHeight(delta.xy) - pathGlassHeight(-delta.xy),
+            pathGlassHeight(delta.yx) - pathGlassHeight(-delta.yx)) / (2.0 * LIQUID_GLASS_STEP);
 
+        highp vec2 glass = pathGlass(dstFromEdge);
         highp vec2 refractionOffset;
         highp vec2 dispersionOffset;
-        liquidGlass(heightGradient, dstFromEdge * g_ShapeRadius, g_Bevel, g_Refraction, g_ChromaticAberration, g_Highlight, refractionOffset, dispersionOffset, highlight);
+        liquidGlass(heightGradient, glass.x, glass.y, g_Refraction, g_ChromaticAberration, g_Highlight, refractionOffset, dispersionOffset, highlight);
 
         backdrop = sampleLiquidGlassBackdrop(refractionOffset, dispersionOffset);
     }

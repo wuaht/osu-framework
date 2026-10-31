@@ -122,6 +122,43 @@ namespace osu.Framework.Graphics.Lines
             }
         }
 
+        private float liquidGlassStart;
+
+        /// <summary>
+        /// The distance from the edge of the path at which the liquid glass starts, relative to <see cref="Path.PathRadius"/>.
+        /// </summary>
+        public float LiquidGlassStart
+        {
+            get => liquidGlassStart;
+            set
+            {
+                if (liquidGlassStart == value)
+                    return;
+
+                liquidGlassStart = value;
+                Invalidate(Invalidation.DrawNode);
+            }
+        }
+
+        private float liquidGlassSeparation;
+
+        /// <summary>
+        /// The distance from the edge of the path at which the liquid glass is split into an outer ring and an inner piece, relative to <see cref="Path.PathRadius"/>.
+        /// The glass is a single piece while this is not greater than <see cref="LiquidGlassStart"/>.
+        /// </summary>
+        public float LiquidGlassSeparation
+        {
+            get => liquidGlassSeparation;
+            set
+            {
+                if (liquidGlassSeparation == value)
+                    return;
+
+                liquidGlassSeparation = value;
+                Invalidate(Invalidation.DrawNode);
+            }
+        }
+
         /// <inheritdoc/>
         public virtual float BackdropOpacity => MathF.Min(1, (FrameBufferDrawColour?.Colour.MaxAlpha ?? 1) * 2.5f);
 
@@ -194,6 +231,8 @@ namespace osu.Framework.Graphics.Lines
             private Texture texture;
             private Vector4 textureRect;
             private float pathRadius;
+            private float liquidGlassStart;
+            private float liquidGlassSeparation;
             private IUniformBuffer<PathTextureParameters> parametersBuffer;
 
             public BackdropBlurPathDrawNode(BackdropBlurPath source, PathDrawNode child, BackdropBlurDrawNodeSharedData sharedData)
@@ -207,6 +246,8 @@ namespace osu.Framework.Graphics.Lines
 
                 pathInvalidationID = Source.PathInvalidationID;
                 pathRadius = Source.PathRadius;
+                liquidGlassStart = Source.LiquidGlassStart;
+                liquidGlassSeparation = Source.LiquidGlassSeparation;
                 texture = Source.Texture;
 
                 var rect = texture.GetTextureRect();
@@ -225,6 +266,8 @@ namespace osu.Framework.Graphics.Lines
                 parametersBuffer.Data = new PathTextureParameters
                 {
                     TexRect1 = textureRect,
+                    GlassStart = liquidGlassStart,
+                    GlassSeparation = liquidGlassSeparation,
                 };
                 shader.BindUniformBlock("m_PathTextureParameters", parametersBuffer);
 
@@ -244,6 +287,9 @@ namespace osu.Framework.Graphics.Lines
             private record struct PathTextureParameters
             {
                 public UniformVector4 TexRect1;
+                public UniformFloat GlassStart;
+                public UniformFloat GlassSeparation;
+                private readonly UniformPadding8 pad1;
             }
         }
     }
