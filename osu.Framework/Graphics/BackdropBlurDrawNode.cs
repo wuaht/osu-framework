@@ -51,6 +51,15 @@ namespace osu.Framework.Graphics
         private RectangleF? backbufferDrawRectangle;
         private Color4 backdropUnderlay;
 
+        private LiquidGlassParameters liquidGlass;
+
+        /// <summary>
+        /// The scale from the local space of the source to screen space, used to convert the sizes of <see cref="LiquidGlassParameters"/>.
+        /// </summary>
+        protected float LiquidGlassScale { get; private set; }
+
+        private RectangleF liquidGlassShape;
+
         private IShader downsampleShader;
         private IShader blurShader;
         private IShader blendShader;
@@ -82,13 +91,28 @@ namespace osu.Framework.Graphics
             backbufferDrawRectangle = Source.BackbufferDrawRectangle;
             backdropUnderlay = Source.BackdropUnderlayColour;
 
+            liquidGlass = Source.LiquidGlass;
+
+            if (liquidGlass.Enabled)
+            {
+                Quad quad = Source.ScreenSpaceDrawQuad;
+                Vector2 drawSize = Source.DrawSize;
+                LiquidGlassScale = drawSize.X > 0 && drawSize.Y > 0 ? MathF.Min(quad.Width / drawSize.X, quad.Height / drawSize.Y) : 0;
+
+                // relative to the draw rectangle, which the blend shader works in.
+                RectangleF shape = liquidGlass.Shape ?? new RectangleF(Vector2.Zero, drawSize);
+                Vector2 topLeft = Vector2Extensions.Transform(shape.TopLeft, Source.DrawInfo.Matrix);
+                Vector2 bottomRight = Vector2Extensions.Transform(shape.BottomRight, Source.DrawInfo.Matrix);
+                liquidGlassShape = new RectangleF(Vector2.ComponentMin(topLeft, bottomRight) - DrawRectangle.TopLeft, Vector2.ComponentMax(topLeft, bottomRight) - Vector2.ComponentMin(topLeft, bottomRight));
+            }
+
             downsampleShader = Source.DownsampleShader;
             blurShader = Source.BlurShader;
             blendShader = Source.BlendShader;
         }
 
         private bool backdropEnabled =>
-            (blurRadius.X > 0 || blurRadius.Y > 0)
+            (blurRadius.X > 0 || blurRadius.Y > 0 || liquidGlass.Enabled)
             && backdropOpacity > 0
             && backbufferDrawRectangle != null
             && effectBufferSize.X >= 1 && effectBufferSize.Y >= 1;
@@ -140,7 +164,15 @@ namespace osu.Framework.Graphics
             }
 
             if (blurRadius.Y > 0)
+            {
                 drawBlurredFrameBuffer(renderer, source, sourceRect, blurRadius.Y, blurSigma.Y, blurRotation + 90);
+
+                source = SharedData.CurrentEffectBuffer;
+            }
+
+            // Without any blur, the backdrop still has to be copied into an effect buffer, as the backbuffer can't be sampled while it is being drawn into.
+            if (source == backbuffer)
+                drawDownsampledFrameBuffer(renderer, backbuffer, sourceRect, Vector2.One);
 
             renderer.PopDepthInfo();
             renderer.PopScissorState();
@@ -229,6 +261,15 @@ namespace osu.Framework.Graphics
                 BackdropTintStrength = backdropTintStrength,
                 // premultiplied, like the backdrop.
                 BackdropUnderlay = new Vector4(backdropUnderlay.R * backdropUnderlay.A, backdropUnderlay.G * backdropUnderlay.A, backdropUnderlay.B * backdropUnderlay.A, backdropUnderlay.A),
+                ShapeRect = new Vector4(liquidGlassShape.X, liquidGlassShape.Y, liquidGlassShape.Width, liquidGlassShape.Height),
+                DrawSize = DrawRectangle.Size,
+                ShapeRadius = LiquidGlassShapeRadius,
+                // zero disables the effect in the shader.
+                Bevel = liquidGlass.Enabled ? liquidGlass.Thickness * LiquidGlassScale : 0,
+                Refraction = liquidGlass.Refraction,
+                ChromaticAberration = liquidGlass.ChromaticAberration,
+                Highlight = liquidGlass.Highlight,
+                Darkness = liquidGlass.Darkness,
             };
 
             renderer.BindTexture(SharedData.CurrentEffectBuffer.Texture, BackdropTextureUnit);
@@ -238,6 +279,11 @@ namespace osu.Framework.Graphics
             renderer.DrawFrameBuffer(SharedData.MainBuffer, DrawRectangle, DrawColourInfo.Colour);
             blendShader.Unbind();
         }
+
+        /// <summary>
+        /// The radius of the shape of the liquid glass in screen space, passed to <see cref="IBackdropBlurDrawable.BlendShader"/>.
+        /// </summary>
+        protected virtual float LiquidGlassShapeRadius => liquidGlass.CornerRadius * LiquidGlassScale;
 
         protected override Vector2 GetFrameBufferSize(IFrameBuffer frameBuffer)
         {
@@ -282,6 +328,14 @@ namespace osu.Framework.Graphics
             public UniformFloat BackdropTintStrength;
             private readonly UniformPadding4 pad1;
             public UniformVector4 BackdropUnderlay;
+            public UniformVector4 ShapeRect;
+            public UniformVector2 DrawSize;
+            public UniformFloat ShapeRadius;
+            public UniformFloat Bevel;
+            public UniformFloat Refraction;
+            public UniformFloat ChromaticAberration;
+            public UniformFloat Highlight;
+            public UniformFloat Darkness;
         }
     }
 

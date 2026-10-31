@@ -21,7 +21,7 @@ namespace osu.Framework.Graphics.Lines
     /// A <see cref="SmoothPath"/> which blurs the contents of its nearest <see cref="IBackbufferProvider"/> behind itself ("frosted glass").
     /// </summary>
     /// <remarks>
-    /// The backdrop is only blurred while <see cref="BlurSigma"/> is non-zero and an <see cref="IBackbufferProvider"/> is available.
+    /// The backdrop is only drawn while <see cref="BlurSigma"/> is non-zero or <see cref="LiquidGlass"/> is enabled, and an <see cref="IBackbufferProvider"/> is available.
     /// Otherwise, this behaves exactly like a regular <see cref="SmoothPath"/>.
     /// </remarks>
     public partial class BackdropBlurPath : SmoothPath, IBackdropBlurDrawable
@@ -106,6 +106,22 @@ namespace osu.Framework.Graphics.Lines
             }
         }
 
+        private LiquidGlassParameters liquidGlass;
+
+        /// <inheritdoc/>
+        public LiquidGlassParameters LiquidGlass
+        {
+            get => liquidGlass;
+            set
+            {
+                if (liquidGlass == value)
+                    return;
+
+                liquidGlass = value;
+                Invalidate(Invalidation.DrawNode);
+            }
+        }
+
         /// <inheritdoc/>
         public virtual float BackdropOpacity => MathF.Min(1, (FrameBufferDrawColour?.Colour.MaxAlpha ?? 1) * 2.5f);
 
@@ -143,7 +159,7 @@ namespace osu.Framework.Graphics.Lines
             if (backbufferProvider == null)
                 return;
 
-            if (BlurSigma.X > 0 || BlurSigma.Y > 0)
+            if (BlurSigma.X > 0 || BlurSigma.Y > 0 || LiquidGlass.Enabled)
                 backbufferProvider.RequestBackbuffer();
 
             RectangleF rect = backbufferProvider.BackbufferDrawRectangle;
@@ -177,6 +193,7 @@ namespace osu.Framework.Graphics.Lines
             private long pathInvalidationID = -1;
             private Texture texture;
             private Vector4 textureRect;
+            private float pathRadius;
             private IUniformBuffer<PathTextureParameters> parametersBuffer;
 
             public BackdropBlurPathDrawNode(BackdropBlurPath source, PathDrawNode child, BackdropBlurDrawNodeSharedData sharedData)
@@ -189,11 +206,15 @@ namespace osu.Framework.Graphics.Lines
                 base.ApplyState();
 
                 pathInvalidationID = Source.PathInvalidationID;
+                pathRadius = Source.PathRadius;
                 texture = Source.Texture;
 
                 var rect = texture.GetTextureRect();
                 textureRect = new Vector4(rect.Left, rect.Top, rect.Width, rect.Height);
             }
+
+            // The glass follows the distance from the edge of the path stored in the main buffer, which is relative to the radius of the path.
+            protected override float LiquidGlassShapeRadius => pathRadius * LiquidGlassScale;
 
             // Matches Path.PathBufferedDrawNode, such that both the path shader and the blend shader can map the distance to the path texture.
             protected override void BindUniformResources(IShader shader, IRenderer renderer)

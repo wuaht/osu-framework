@@ -50,6 +50,11 @@ namespace osu.Framework.Graphics
         Vector2 EffectBufferScale { get; }
 
         /// <summary>
+        /// The "liquid glass" effect applied to the backdrop. The backdrop is also drawn while this is enabled and <see cref="BlurSigma"/> is zero, in which case it is not blurred.
+        /// </summary>
+        LiquidGlassParameters LiquidGlass { get; }
+
+        /// <summary>
         /// The shader used to downsample the backdrop into the effect buffers when they are smaller than the backbuffer.
         /// </summary>
         IShader DownsampleShader { get; }

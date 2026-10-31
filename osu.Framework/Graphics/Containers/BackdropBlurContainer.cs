@@ -32,7 +32,7 @@ namespace osu.Framework.Graphics.Containers
     /// A container which blurs the contents of its nearest <see cref="IBackbufferProvider"/> behind its children ("frosted glass").
     /// </summary>
     /// <remarks>
-    /// The backdrop is only blurred while <see cref="BlurSigma"/> is non-zero and an <see cref="IBackbufferProvider"/> is available.
+    /// The backdrop is only drawn while <see cref="BlurSigma"/> is non-zero or <see cref="LiquidGlass"/> is enabled, and an <see cref="IBackbufferProvider"/> is available.
     /// Otherwise, the children are drawn as with a regular <see cref="BufferedContainer"/>.
     /// </remarks>
     public partial class BackdropBlurContainer<T> : Container<T>, IBackdropBlurDrawable
@@ -52,6 +52,9 @@ namespace osu.Framework.Graphics.Containers
 
         /// <inheritdoc/>
         public Vector2 EffectBufferScale { get; set; } = Vector2.One;
+
+        /// <inheritdoc/>
+        public LiquidGlassParameters LiquidGlass { get; set; }
 
         /// <inheritdoc/>
         public virtual float BackdropOpacity => 1 - MathF.Pow(1 - base.DrawColourInfo.Colour.MaxAlpha, 2);
@@ -107,7 +110,7 @@ namespace osu.Framework.Graphics.Containers
 
             if (backbufferProvider != null)
             {
-                if (BlurSigma.X > 0 || BlurSigma.Y > 0)
+                if (BlurSigma.X > 0 || BlurSigma.Y > 0 || LiquidGlass.Enabled)
                     backbufferProvider.RequestBackbuffer();
 
                 backbufferDrawRectangle = backbufferProvider.BackbufferDrawRectangle;

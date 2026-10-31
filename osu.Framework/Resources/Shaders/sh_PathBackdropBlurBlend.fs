@@ -30,9 +30,40 @@ layout(std140, set = 4, binding = 0) uniform m_BackdropBlendParameters
 	lowp float g_BackdropOpacity;
 	lowp float g_BackdropTintStrength;
 	lowp vec4 g_BackdropUnderlay;
+	highp vec4 g_ShapeRect;
+	highp vec2 g_DrawSize;
+	highp float g_ShapeRadius;
+	highp float g_Bevel;
+	mediump float g_Refraction;
+	mediump float g_ChromaticAberration;
+	mediump float g_Highlight;
+	mediump float g_Darkness;
 };
 
 layout(location = 0) out vec4 o_Colour;
+
+// Samples the backdrop behind liquid glass, see liquidGlass().
+lowp vec4 sampleLiquidGlassBackdrop(highp vec2 refractionOffset, highp vec2 dispersionOffset)
+{
+    highp vec2 uv = clamp(v_TexCoord + refractionOffset / g_DrawSize, 0.0, 1.0);
+    lowp vec4 backdrop = texture(sampler2D(m_Texture2, m_Sampler2), uv);
+
+    if (g_ChromaticAberration > 0.0)
+    {
+        highp vec2 dispersion = dispersionOffset / g_DrawSize;
+        backdrop.r = texture(sampler2D(m_Texture2, m_Sampler2), clamp(uv + dispersion, 0.0, 1.0)).r;
+        backdrop.b = texture(sampler2D(m_Texture2, m_Sampler2), clamp(uv - dispersion, 0.0, 1.0)).b;
+    }
+
+    backdrop.rgb *= 1.0 - g_Darkness;
+    return backdrop;
+}
+
+// The distance from the edge of the path in pixels at an offset from the current pixel, based on the distance relative to the radius stored in the frame buffer.
+highp float insidePath(highp vec2 offset)
+{
+    return texture(sampler2D(m_Texture, m_Sampler), v_TexCoord + offset / g_DrawSize).r * g_ShapeRadius;
+}
 
 void main(void)
 {
@@ -41,9 +72,29 @@ void main(void)
     lowp vec4 pathCol = texture(sampler2D(m_Texture1, m_Sampler1), TexRect1.xy + vec2(dstFromEdge, 0.0) * TexRect1.zw, -0.9);
     lowp vec4 texel = vec4(pathCol.rgb, pathCol.a * float(dstFromEdge > 0.0));
 
-    lowp vec4 backdrop = texture(sampler2D(m_Texture2, m_Sampler2), v_TexCoord);
+    lowp vec4 backdrop;
+    lowp vec3 highlight = vec3(0.0);
 
-    o_Colour = blendWithBackdrop(texel, backdrop, v_TexCoord, g_MaskCutoff, g_BackdropOpacity, g_BackdropTintStrength, g_BackdropUnderlay);
+    if (g_Bevel > 0.0)
+    {
+        highp vec2 delta = vec2(LIQUID_GLASS_STEP, 0.0);
+
+        highp vec2 heightGradient = vec2(
+            liquidGlassHeight(insidePath(delta.xy), g_Bevel) - liquidGlassHeight(insidePath(-delta.xy), g_Bevel),
+            liquidGlassHeight(insidePath(delta.yx), g_Bevel) - liquidGlassHeight(insidePath(-delta.yx), g_Bevel)) / (2.0 * LIQUID_GLASS_STEP);
+
+        highp vec2 refractionOffset;
+        highp vec2 dispersionOffset;
+        liquidGlass(heightGradient, dstFromEdge * g_ShapeRadius, g_Bevel, g_Refraction, g_ChromaticAberration, g_Highlight, refractionOffset, dispersionOffset, highlight);
+
+        backdrop = sampleLiquidGlassBackdrop(refractionOffset, dispersionOffset);
+    }
+    else
+    {
+        backdrop = texture(sampler2D(m_Texture2, m_Sampler2), v_TexCoord);
+    }
+
+    o_Colour = blendWithBackdrop(texel, backdrop, v_TexCoord, g_MaskCutoff, g_BackdropOpacity, g_BackdropTintStrength, g_BackdropUnderlay, highlight);
 }
 
 #endif
