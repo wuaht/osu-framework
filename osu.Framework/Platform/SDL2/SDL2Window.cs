@@ -682,6 +682,11 @@ namespace osu.Framework.Platform.SDL2
         /// </summary>
         public event Action<string>? DragDrop;
 
+        // SDL2 doesn't report positions while dragging.
+        public event Action<osuTK.Vector2>? DragOver { add { } remove { } }
+
+        public event Action? DragEnded { add { } remove { } }
+
         #endregion
 
         public void Dispose()

@@ -626,6 +626,7 @@ namespace osu.Framework.Platform.SDL3
                 case SDL_EventType.SDL_EVENT_DROP_FILE:
                 case SDL_EventType.SDL_EVENT_DROP_TEXT:
                 case SDL_EventType.SDL_EVENT_DROP_BEGIN:
+                case SDL_EventType.SDL_EVENT_DROP_POSITION:
                 case SDL_EventType.SDL_EVENT_DROP_COMPLETE:
                     handleDropEvent(e.drop);
                     break;
@@ -720,6 +721,16 @@ namespace osu.Framework.Platform.SDL3
         public event Action<string>? DragDrop;
 
         protected void TriggerDragDrop(string filename) => DragDrop?.Invoke(filename);
+
+        /// <summary>
+        /// Invoked when the user drags something over the window, with its position in window pixels.
+        /// </summary>
+        public event Action<osuTK.Vector2>? DragOver;
+
+        /// <summary>
+        /// Invoked when dragging over the window ends, either by dropping or by leaving the window.
+        /// </summary>
+        public event Action? DragEnded;
 
         #endregion
 

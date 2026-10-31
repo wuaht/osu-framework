@@ -286,11 +286,23 @@ namespace osu.Framework.Platform.SDL3
         {
             switch (evtDrop.type)
             {
+                case SDL_EventType.SDL_EVENT_DROP_POSITION:
+                    DragOver?.Invoke(new Vector2(evtDrop.x * Scale, evtDrop.y * Scale));
+                    break;
+
                 case SDL_EventType.SDL_EVENT_DROP_FILE:
                     string? str = evtDrop.GetData();
-                    if (str != null)
-                        TriggerDragDrop(str);
 
+                    if (str != null)
+                    {
+                        DragOver?.Invoke(new Vector2(evtDrop.x * Scale, evtDrop.y * Scale));
+                        TriggerDragDrop(str);
+                    }
+
+                    break;
+
+                case SDL_EventType.SDL_EVENT_DROP_COMPLETE:
+                    DragEnded?.Invoke();
                     break;
             }
         }

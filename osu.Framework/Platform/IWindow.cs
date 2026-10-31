@@ -101,6 +101,20 @@ namespace osu.Framework.Platform
         event Action<string>? DragDrop;
 
         /// <summary>
+        /// Invoked when the user drags something over the window, with its position in window pixels (like mouse positions).
+        /// Also invoked with the position of a drop, right before <see cref="DragDrop"/>.
+        /// </summary>
+        /// <remarks>
+        /// Not supported by all windows.
+        /// </remarks>
+        event Action<osuTK.Vector2>? DragOver;
+
+        /// <summary>
+        /// Invoked when dragging over the window ends, either by dropping or by leaving the window.
+        /// </summary>
+        event Action? DragEnded;
+
+        /// <summary>
         /// Whether the OS cursor is currently contained within the game window.
         /// </summary>
         IBindable<bool> CursorInWindow { get; }
