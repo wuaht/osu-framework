@@ -71,11 +71,14 @@ highp vec2 pathGlass(highp float dstFromEdge)
     if (separation <= 0.0)
         return vec2(inside, g_Bevel);
 
+    // The bottom of the groove between both pieces is rounded, as a sharp crease would flip the refraction from one pixel to the next.
+    highp float groove = length(vec2(inside - separation, 2.0 * LIQUID_GLASS_STEP));
+
     // The ring is rounded on both sides.
     if (inside < separation)
-        return vec2(min(inside, separation - inside), min(g_Bevel, separation * 0.5));
+        return vec2(min(inside, groove), min(g_Bevel, separation * 0.5));
 
-    return vec2(inside - separation, g_Bevel);
+    return vec2(groove, g_Bevel);
 }
 
 // The height of the glass at an offset from the current pixel, based on the distance relative to the radius stored in the frame buffer.
@@ -115,7 +118,10 @@ void main(void)
         backdrop = texture(sampler2D(m_Texture2, m_Sampler2), v_TexCoord);
     }
 
-    o_Colour = blendWithBackdrop(texel, backdrop, v_TexCoord, g_MaskCutoff, g_BackdropOpacity, g_BackdropTintStrength, g_BackdropUnderlay, highlight);
+    // Liquid glass always receives the backdrop, regardless of how transparent its colour is.
+    lowp float maskCutoff = g_Bevel > 0.0 && dstFromEdge > g_GlassStart ? -1.0 : g_MaskCutoff;
+
+    o_Colour = blendWithBackdrop(texel, backdrop, v_TexCoord, maskCutoff, g_BackdropOpacity, g_BackdropTintStrength, g_BackdropUnderlay, highlight);
 }
 
 #endif
