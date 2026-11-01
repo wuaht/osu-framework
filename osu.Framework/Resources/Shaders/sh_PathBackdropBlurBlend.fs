@@ -61,6 +61,9 @@ lowp vec4 sampleLiquidGlassBackdrop(highp vec2 refractionOffset, highp vec2 disp
     return backdrop;
 }
 
+// The amount of times the backdrop is sampled per pixel, see main().
+const int LIQUID_GLASS_SAMPLES = 4;
+
 // The distance from the nearest edge of the piece of glass at a distance from the edge of the path (relative to its radius), and the width of the rounded edge of that piece, both in pixels.
 // The glass starts at g_GlassStart, and is split into an outer ring and an inner piece at g_GlassSeparation.
 highp vec2 pathGlass(highp float dstFromEdge)
@@ -111,16 +114,24 @@ void main(void)
         direction = dot(direction, direction) > 0.0 ? normalize(direction) : vec2(0.0);
 
         highp float stepDistance = LIQUID_GLASS_STEP / g_ShapeRadius;
-        highp float slope = (pathGlassHeight(dstFromEdge + stepDistance) - pathGlassHeight(dstFromEdge - stepDistance)) / (2.0 * LIQUID_GLASS_STEP);
-        highp vec2 heightGradient = direction * slope;
+        backdrop = vec4(0.0);
 
-        // The ring refracts as strongly as the rest of the glass, as it would barely be visible otherwise.
-        highp vec2 glass = pathGlass(dstFromEdge);
-        highp vec2 refractionOffset;
-        highp vec2 dispersionOffset;
-        liquidGlass(heightGradient, glass.x, g_Bevel, g_Refraction, g_ChromaticAberration, g_Highlight, refractionOffset, dispersionOffset, highlight);
+        // The refraction changes abruptly across the groove between the ring and the inner piece, which would be jagged if it was sampled once per pixel.
+        // The backdrop is therefore sampled at several distances across the pixel and averaged.
+        for (int i = 0; i < LIQUID_GLASS_SAMPLES; i++)
+        {
+            highp float sampleDistance = float(dstFromEdge) + (float(i) + 0.5 - 0.5 * float(LIQUID_GLASS_SAMPLES)) / (float(LIQUID_GLASS_SAMPLES) * g_ShapeRadius);
+            highp float slope = (pathGlassHeight(sampleDistance + stepDistance) - pathGlassHeight(sampleDistance - stepDistance)) / (2.0 * LIQUID_GLASS_STEP);
 
-        backdrop = sampleLiquidGlassBackdrop(refractionOffset, dispersionOffset);
+            // The ring refracts as strongly as the rest of the glass, as it would barely be visible otherwise.
+            highp vec2 refractionOffset;
+            highp vec2 dispersionOffset;
+            lowp vec3 sampleHighlight;
+            liquidGlass(direction * slope, pathGlass(sampleDistance).x, g_Bevel, g_Refraction, g_ChromaticAberration, g_Highlight, refractionOffset, dispersionOffset, sampleHighlight);
+
+            backdrop += sampleLiquidGlassBackdrop(refractionOffset, dispersionOffset) / float(LIQUID_GLASS_SAMPLES);
+            highlight += sampleHighlight / float(LIQUID_GLASS_SAMPLES);
+        }
     }
     else
     {
