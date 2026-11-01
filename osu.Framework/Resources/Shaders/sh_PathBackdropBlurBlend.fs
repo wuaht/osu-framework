@@ -71,21 +71,24 @@ highp vec2 pathGlass(highp float dstFromEdge)
     if (separation <= 0.0)
         return vec2(inside, g_Bevel);
 
-    // The bottom of the groove between both pieces is rounded, as a sharp crease would flip the refraction from one pixel to the next.
-    highp float groove = length(vec2(inside - separation, 2.0 * LIQUID_GLASS_STEP));
-
     // The ring is rounded on both sides.
     if (inside < separation)
-        return vec2(min(inside, groove), min(g_Bevel, separation * 0.5));
+        return vec2(min(inside, separation - inside), min(g_Bevel, separation * 0.5));
 
-    return vec2(groove, g_Bevel);
+    return vec2(inside - separation, g_Bevel);
 }
 
-// The height of the glass at an offset from the current pixel, based on the distance relative to the radius stored in the frame buffer.
-highp float pathGlassHeight(highp vec2 offset)
+// The height of the glass at a distance from the edge of the path (relative to its radius).
+highp float pathGlassHeight(highp float dstFromEdge)
 {
-    highp vec2 glass = pathGlass(texture(sampler2D(m_Texture, m_Sampler), v_TexCoord + offset / g_DrawSize).r);
+    highp vec2 glass = pathGlass(dstFromEdge);
     return liquidGlassHeight(glass.x, glass.y);
+}
+
+// The distance from the edge of the path (relative to its radius) at an offset from the current pixel, as stored in the frame buffer.
+highp float pathDistance(highp vec2 offset)
+{
+    return texture(sampler2D(m_Texture, m_Sampler), v_TexCoord + offset / g_DrawSize).r;
 }
 
 void main(void)
@@ -102,14 +105,20 @@ void main(void)
     {
         highp vec2 delta = vec2(LIQUID_GLASS_STEP, 0.0);
 
-        highp vec2 heightGradient = vec2(
-            pathGlassHeight(delta.xy) - pathGlassHeight(-delta.xy),
-            pathGlassHeight(delta.yx) - pathGlassHeight(-delta.yx)) / (2.0 * LIQUID_GLASS_STEP);
+        // Only the direction towards the centre of the path is taken from the frame buffer.
+        // Its precision is too low for the slope of the glass, which would make steep parts of it refract noisily, so the slope is derived from the distance at this pixel instead.
+        highp vec2 direction = vec2(pathDistance(delta.xy) - pathDistance(-delta.xy), pathDistance(delta.yx) - pathDistance(-delta.yx));
+        direction = dot(direction, direction) > 0.0 ? normalize(direction) : vec2(0.0);
 
+        highp float stepDistance = LIQUID_GLASS_STEP / g_ShapeRadius;
+        highp float slope = (pathGlassHeight(dstFromEdge + stepDistance) - pathGlassHeight(dstFromEdge - stepDistance)) / (2.0 * LIQUID_GLASS_STEP);
+        highp vec2 heightGradient = direction * slope;
+
+        // The ring refracts as strongly as the rest of the glass, as it would barely be visible otherwise.
         highp vec2 glass = pathGlass(dstFromEdge);
         highp vec2 refractionOffset;
         highp vec2 dispersionOffset;
-        liquidGlass(heightGradient, glass.x, glass.y, g_Refraction, g_ChromaticAberration, g_Highlight, refractionOffset, dispersionOffset, highlight);
+        liquidGlass(heightGradient, glass.x, g_Bevel, g_Refraction, g_ChromaticAberration, g_Highlight, refractionOffset, dispersionOffset, highlight);
 
         backdrop = sampleLiquidGlassBackdrop(refractionOffset, dispersionOffset);
     }
