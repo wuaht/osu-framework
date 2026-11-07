@@ -20,7 +20,12 @@ namespace osu.Framework.Input
     {
         protected override ImmutableArray<InputHandler> InputHandlers => Host.AvailableInputHandlers;
 
-        public override bool HandleHoverEvents => Host.Window?.CursorInWindow.Value ?? true;
+        public override bool HandleHoverEvents => CursorInWindow;
+
+        /// <summary>
+        /// Whether the cursor is considered inside the window. Mouse button presses and scrolls are dropped while this is <c>false</c>.
+        /// </summary>
+        protected virtual bool CursorInWindow => Host.Window?.CursorInWindow.Value ?? true;
 
         protected internal override bool ShouldBeAlive => true;
 
@@ -68,13 +73,13 @@ namespace osu.Framework.Input
                     // presses registered when the mouse pointer is outside the window are ignored.
                     // however, releases registered when the mouse pointer is outside the window cannot be ignored;
                     // handling them is essential to correctly handling mouse capture (only applicable when relative mode is disabled).
-                    if (buttonChange.Kind == ButtonStateChangeKind.Pressed && Host.Window?.CursorInWindow.Value == false)
+                    if (buttonChange.Kind == ButtonStateChangeKind.Pressed && !CursorInWindow)
                         return;
 
                     break;
 
                 case MouseScrollChangeEvent:
-                    if (Host.Window?.CursorInWindow.Value == false)
+                    if (!CursorInWindow)
                         return;
 
                     break;
