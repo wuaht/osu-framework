@@ -235,7 +235,7 @@ namespace osu.Framework.Graphics.Containers
             => AddPart(CreateChunkFor(text, true, () => new TSpriteText(), creationParameters));
 
         /// <inheritdoc cref="AddText{TSpriteText}(LocalisableString,Action{TSpriteText})"/>
-        public ITextPart AddText(LocalisableString text, Action<SpriteText> creationParameters = null)
+        public virtual ITextPart AddText(LocalisableString text, Action<SpriteText> creationParameters = null)
             => AddPart(CreateChunkFor(text, true, CreateSpriteText, creationParameters));
 
         /// <summary>
