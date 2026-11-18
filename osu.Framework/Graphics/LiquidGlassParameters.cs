@@ -50,6 +50,12 @@ namespace osu.Framework.Graphics
         public float Darkness { get; init; }
 
         /// <summary>
+        /// How much the glass acts as if a white light was behind it, from 0 (only the backdrop) to 1 (white), which keeps it visible on dark backdrops.
+        /// The backdrop is lit before it is darkened by <see cref="Darkness"/>.
+        /// </summary>
+        public float Backlight { get; init; }
+
+        /// <summary>
         /// Whether the effect is enabled.
         /// </summary>
         public bool Enabled => Thickness > 0;

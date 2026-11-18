@@ -29,6 +29,7 @@ layout(std140, set = 2, binding = 0) uniform m_BackdropBlendParameters
 	mediump float g_ChromaticAberration;
 	mediump float g_Highlight;
 	mediump float g_Darkness;
+	mediump float g_Backlight;
 };
 
 layout(location = 0) out vec4 o_Colour;
@@ -46,6 +47,8 @@ lowp vec4 sampleLiquidGlassBackdrop(highp vec2 refractionOffset, highp vec2 disp
         backdrop.b = texture(sampler2D(m_Texture1, m_Sampler1), clamp(uv - dispersion, 0.0, 1.0)).b;
     }
 
+    // Composites the backdrop with white (both premultiplied), such that transparent parts of it are lit too.
+    backdrop = mix(backdrop, vec4(1.0), g_Backlight);
     backdrop.rgb *= 1.0 - g_Darkness;
     return backdrop;
 }

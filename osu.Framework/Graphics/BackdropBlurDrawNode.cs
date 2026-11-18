@@ -270,6 +270,7 @@ namespace osu.Framework.Graphics
                 ChromaticAberration = liquidGlass.ChromaticAberration,
                 Highlight = liquidGlass.Highlight,
                 Darkness = liquidGlass.Darkness,
+                Backlight = liquidGlass.Backlight,
             };
 
             renderer.BindTexture(SharedData.CurrentEffectBuffer.Texture, BackdropTextureUnit);
@@ -336,6 +337,8 @@ namespace osu.Framework.Graphics
             public UniformFloat ChromaticAberration;
             public UniformFloat Highlight;
             public UniformFloat Darkness;
+            public UniformFloat Backlight;
+            private readonly UniformPadding12 pad2;
         }
     }
 
